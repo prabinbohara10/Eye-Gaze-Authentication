@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGazer.js Example</title>
+    <script src="library/webgazer.js" type="text/javascript"></script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center; /* Center items horizontally */
+            align-items: center; /* Center items vertically */
+            height: 100vh; /* Full viewport height */
+            margin: 0; /* Remove default margin */
+            position: relative; /* Position relative for absolute positioning of countdown */
+        }
+        #loadingMessage {
+            display: none; /* Hidden by default */
+            font-size: 20px;
+            color: blue;
+        }
+        #controls {
+            display: flex;
+            flex-direction: column; /* Stack input and button vertically */
+            align-items: flex-end; /* Align items to the right */
+            margin-right: 20px; /* Add some spacing from the edge */
+        }
+        #countdownContainer {
+            position: absolute; /* Position absolute to center it on screen */
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+        }
+        #countdown {
+            width: 100px; /* Width of the circle */
+            height: 100px; /* Height of the circle */
+            border-radius: 50%; /* Make it circular */
+            border: 5px solid red; /* Circle border color and thickness */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: red;
+            background-color: rgba(255, 255, 255, 0.8); /* Slightly transparent background */
+        }
+    </style>
+</head>
+<body>
+
+<h1 style="display:none;">Eye Gaze Data Collection with WebGazer.js</h1> <!-- Hide main title -->
+
+<div id="controls">
+    <!-- Input field for user's name -->
+    <label for="userName">Enter your name:</label>
+    <input type="text" id="userName" name="userName" placeholder="Your Name" required>
+
+    <!-- Loading message -->
+    <div id="loadingMessage">Loading webcam, please wait...</div>
+
+    <!-- Start button hidden initially -->
+    <button id="startButton" style="display: none;">Start Eye Tracking</button>
+</div>
+
+<!-- Countdown circle container -->
+<div id="countdownContainer">
+    <div id="countdown">10</div> <!-- Countdown timer -->
+</div>
+
+<script>
+    const gazeData = [];
+
+    // Function to initialize WebGazer and request webcam access
+    function initializeWebGazer() {
+        document.getElementById('loadingMessage').style.display = 'block'; // Show loading message
+
+        webgazer.setRegression('ridge')
+            .setTracker('TFFacemesh')
+            .begin()
+            .then(() => {
+                document.getElementById('loadingMessage').style.display = 'none'; // Hide loading message
+                document.getElementById('startButton').style.display = 'block'; // Show start button
+                console.log("WebGazer initialized.");
+            })
+            .catch(err => {
+                document.getElementById('loadingMessage').style.display = 'none'; // Hide loading message
+                console.error("Error initializing WebGazer:", err);
+                alert("Camera access denied or not available. Please allow access to your webcam.");
+            });
+    }
+
+    // Start eye tracking when the button is clicked
+    document.getElementById('startButton').addEventListener('click', () => {
+        const userName = document.getElementById('userName').value; // Get user's name
+        let countdownValue = 10; // Set initial countdown value
+
+        // Show countdown timer
+        const countdownDisplay = document.getElementById('countdown');
+        const countdownContainer = document.getElementById('countdownContainer');
+        countdownContainer.style.display = 'flex'; // Show the countdown container
+        countdownDisplay.textContent = countdownValue;
+
+        webgazer.setGazeListener((data) => {
+            if (data) {
+                gazeData.push({
+                    x: data.x,
+                    y: data.y,
+                    timestamp: new Date().toISOString(),
+                    name: userName // Include user's name in data
+                });
+            }
+        }).applyKalmanFilter(true); // Optional: Apply Kalman filter for smoothing
+
+        // Countdown function
+        const countdownInterval = setInterval(() => {
+            countdownValue--;
+            countdownDisplay.textContent = countdownValue;
+
+            if (countdownValue <= 0) {
+                clearInterval(countdownInterval); // Stop the interval
+                webgazer.pause(); // Pause gaze tracking
+                console.log('Eye tracking paused.');
+                downloadCSV(gazeData); // Download collected data
+                countdownContainer.style.display = 'none'; // Hide countdown display after completion
+            }
+        }, 1000); // Update every second
+    });
+
+    function downloadCSV(data) {
+        const csvRows = [
+            ['Name', 'X', 'Y', 'Timestamp'], // Header with Name
+            ...data.map(row => [row.name, row.x, row.y, row.timestamp]) // Data rows
+        ];
+
+        const csvString = csvRows.map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvString], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.setAttribute('href', url);
+        a.setAttribute('download', 'gaze_data.csv');
+        a.click();
+        
+        URL.revokeObjectURL(url); // Clean up the URL object
+    }
+
+    // Initialize WebGazer on page load
+    window.onload = () => {
+        initializeWebGazer(); // Start camera initialization on load
+    };
+</script>
+
+</body>
+</html>

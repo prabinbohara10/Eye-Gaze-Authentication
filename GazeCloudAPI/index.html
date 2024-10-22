@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GazeCloudAPI Example</title>
+    <script src="https://api.gazerecorder.com/GazeCloudAPI.js"></script>
+</head>
+<body>
+
+<h1>Eye Gaze Data Collection with GazeCloudAPI</h1>
+<button id="startButton">Start Eye Tracking</button>
+
+<script>
+    const gazeData = [];
+
+    document.getElementById('startButton').addEventListener('click', () => {
+        GazeCloudAPI.StartEyeTracking();
+
+        GazeCloudAPI.OnResult = function (GazeData) {
+            if (GazeData.state === 0) { // Valid gaze data
+                gazeData.push({
+                    x: GazeData.docX,
+                    y: GazeData.docY,
+                    timestamp: new Date().toISOString()
+                });
+                console.table(gazeData);
+            }
+        };
+
+        GazeCloudAPI.OnCamDenied = function() {
+            console.log('Camera access denied');
+        };
+
+        // // Optional: Stop tracking after a certain time
+        // setTimeout(() => {
+        //     GazeCloudAPI.StopEyeTracking();
+        //     console.log('Eye tracking stopped.');
+        // }, 10000); // Stops after 10 seconds
+    });
+</script>
+
+</body>
+</html>

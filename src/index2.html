@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGazer.js Eye Tracking</title>
+    <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Eye Gaze Data Collection with WebGazer.js</h1>
+<button id="startButton">Start Eye Tracking</button>
+
+<script>
+    const gazeData = [];
+
+    document.getElementById('startButton').addEventListener('click', () => {
+        // Start WebGazer
+        webgazer.setRegression('ridge') // Set regression method
+            .setGazeListener((data) => {
+                if (data) {
+                    // Log gaze data to console
+                    gazeData.push({
+                        x: data.x,
+                        y: data.y,
+                        timestamp: new Date().toISOString()
+                    });
+                    console.table(gazeData);  // Display data in table format
+                }
+            })
+            .begin() // Start the gaze tracking
+            .showVideoPreview(true) // Optional: Show video preview
+            .showPredictionPoints(true); // Optional: Show prediction points
+
+        // Check if the camera is accessible
+        webgazer.getVideoElement().addEventListener('loadeddata', () => {
+            console.log('Camera feed is active.');
+        });
+
+        // Optional: Stop tracking after a certain time
+        setTimeout(() => {
+            webgazer.pause();
+            console.log('Eye tracking stopped.');
+        }, 10000); // Stops after 10 seconds
+    });
+</script>
+
+</body>
+</html>
