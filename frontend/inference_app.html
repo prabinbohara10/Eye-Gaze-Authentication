@@ -8,180 +8,86 @@
     <style>
         body {
             display: flex;
-            justify-content: center; /* Center items horizontally */
-            align-items: center; /* Center items vertically */
-            height: 100vh; /* Full viewport height */
-            margin: 0; /* Remove default margin */
-            position: relative; /* Position relative for absolute positioning of countdown */
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            position: relative;
         }
         #loadingMessage {
-            display: none; /* Hidden by default */
+            display: none;
             font-size: 20px;
             color: blue;
         }
         #controls {
             display: flex;
-            flex-direction: column; /* Stack input and button vertically */
-            align-items: flex-end; /* Align items to the right */
-            margin-right: 20px; /* Add some spacing from the edge */
+            flex-direction: column;
+            align-items: flex-end;
+            margin-right: 20px;
         }
         #countdownContainer {
-            position: absolute; /* Position absolute to center it on screen */
-            display: none; /* Hidden by default */
+            position: absolute;
+            display: none;
             justify-content: center;
             align-items: center;
         }
         #countdown {
-            width: 100px; /* Width of the circle */
-            height: 100px; /* Height of the circle */
-            border-radius: 50%; /* Make it circular */
-            border: 5px solid red; /* Circle border color and thickness */
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 5px solid red;
             display: flex;
             justify-content: center;
             align-items: center;
             font-size: 24px;
             color: red;
-            background-color: rgba(255, 255, 255, 0.8); /* Slightly transparent background */
+            background-color: rgba(255, 255, 255, 0.8);
         }
     </style>
 </head>
 <body>
 
-<h1 style="display:none;">Eye Gaze Data Collection with WebGazer.js</h1> <!-- Hide main title -->
+<h1 style="display:none;">Eye Gaze Data Collection with WebGazer.js</h1>
 
 <div id="controls">
-    <!-- Input field for user's name -->
     <label for="userName">Enter your name:</label>
     <input type="text" id="userName" name="userName" placeholder="Your Name" required>
-
-    <!-- Loading message -->
     <div id="loadingMessage">Loading webcam, please wait...</div>
-
-    <!-- Start button hidden initially -->
     <button id="startButton" style="display: none;">Start Eye Tracking</button>
 </div>
 
-<!-- Countdown circle container -->
 <div id="countdownContainer">
-    <div id="countdown">10</div> <!-- Countdown timer -->
+    <div id="countdown">10</div>
 </div>
 
 <script>
     const gazeData = [];
 
-    // Function to initialize WebGazer and request webcam access
     function initializeWebGazer() {
-        document.getElementById('loadingMessage').style.display = 'block'; // Show loading message
+        document.getElementById('loadingMessage').style.display = 'block';
 
         webgazer.setRegression('ridge')
             .setTracker('TFFacemesh')
             .begin()
             .then(() => {
-                document.getElementById('loadingMessage').style.display = 'none'; // Hide loading message
-                document.getElementById('startButton').style.display = 'block'; // Show start button
+                document.getElementById('loadingMessage').style.display = 'none';
+                document.getElementById('startButton').style.display = 'block';
                 console.log("WebGazer initialized.");
             })
             .catch(err => {
-                document.getElementById('loadingMessage').style.display = 'none'; // Hide loading message
+                document.getElementById('loadingMessage').style.display = 'none';
                 console.error("Error initializing WebGazer:", err);
                 alert("Camera access denied or not available. Please allow access to your webcam.");
             });
     }
 
-    // Enroll new user (send name, x, and y to backend)
-    async function enrollUser(name, x, y) {
-        const payload = {
-            name: name,
-            x: x,
-            y: y
-        };
-
-        try {
-            const response = await fetch("http://localhost:8000/enroll/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                console.log("User enrolled successfully:", data);
-            } else {
-                console.error("Error enrolling user:", response.statusText);
-            }
-        } catch (error) {
-            console.error("Network error:", error);
-        }
-    }
-
-    // Authenticate user (send x and y to backend)
-    async function authenticateUser(x, y) {
-        const payload = {
-            x: x,
-            y: y
-        };
-
-        try {
-            const response = await fetch("http://localhost:8000/authenticate/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.authenticated) {
-                    console.log("User authenticated:", data);
-                } else {
-                    console.log("Authentication failed.");
-                }
-            } else {
-                console.error("Error authenticating user:", response.statusText);
-            }
-        } catch (error) {
-            console.error("Network error:", error);
-        }
-    }
-
-    // Perform inference (send x and y list to backend)
-    async function getInference(xyList) {
-        const payload = {
-            data_points: xyList.map(([X, Y]) => ({ X, Y }))  // Format the list of points
-        };
-
-        try {
-            const response = await fetch("http://localhost:8000/inference/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                console.log("Inference results:", data);
-            } else {
-                console.error("Error performing inference:", response.statusText);
-            }
-        } catch (error) {
-            console.error("Network error:", error);
-        }
-    }
-
-    // Start eye tracking when the button is clicked
     document.getElementById('startButton').addEventListener('click', () => {
-        const userName = document.getElementById('userName').value; // Get user's name
-        let countdownValue = 10; // Set initial countdown value
+        const userName = document.getElementById('userName').value;
+        let countdownValue = 10;
 
-        // Show countdown timer
         const countdownDisplay = document.getElementById('countdown');
         const countdownContainer = document.getElementById('countdownContainer');
-        countdownContainer.style.display = 'flex'; // Show the countdown container
+        countdownContainer.style.display = 'flex';
         countdownDisplay.textContent = countdownValue;
 
         webgazer.setGazeListener((data) => {
@@ -190,51 +96,46 @@
                     x: data.x,
                     y: data.y,
                     timestamp: new Date().toISOString(),
-                    name: userName // Include user's name in data
+                    name: userName
                 });
             }
-        }).applyKalmanFilter(true); // Optional: Apply Kalman filter for smoothing
+        }).applyKalmanFilter(true);
 
-        // Enroll the user at the start
-        enrollUser(userName, gazeData[0].x, gazeData[0].y);  // Send first data point to enroll user
-
-        // Countdown function
         const countdownInterval = setInterval(() => {
             countdownValue--;
             countdownDisplay.textContent = countdownValue;
 
             if (countdownValue <= 0) {
-                clearInterval(countdownInterval); // Stop the interval
-                webgazer.pause(); // Pause gaze tracking
+                clearInterval(countdownInterval);
+                webgazer.pause();
                 console.log('Eye tracking paused.');
-                authenticateUser(gazeData.map(d => [d.x, d.y])); // Authenticate with all gaze data
-                getInference(gazeData.map(d => [d.x, d.y])); // Perform inference with all gaze data
-                countdownContainer.style.display = 'none'; // Hide countdown display after completion
+                authenticateUser(gazeData); // Call the authentication function
+                countdownContainer.style.display = 'none';
             }
-        }, 1000); // Update every second
+        }, 1000);
     });
 
-    function downloadCSV(data) {
-        const csvRows = [
-            ['Name', 'X', 'Y', 'Timestamp'], // Header with Name
-            ...data.map(row => [row.name, row.x, row.y, row.timestamp]) // Data rows
-        ];
-
-        const csvString = csvRows.map(e => e.join(",")).join("\n");
-        const blob = new Blob([csvString], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.setAttribute('href', url);
-        a.setAttribute('download', 'gaze_data.csv');
-        a.click();
-        
-        URL.revokeObjectURL(url); // Clean up the URL object
+    function authenticateUser(data) {
+        fetch('/authenticate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.href = '/dashboard'; // Redirect to dashboard
+            } else {
+                window.location.href = '/authentication_failed'; // Redirect on failure
+            }
+        })
+        .catch(error => {
+            console.error("Authentication failed:", error);
+            window.location.href = '/authentication_failed';
+        });
     }
 
-    // Initialize WebGazer on page load
     window.onload = () => {
-        initializeWebGazer(); // Start camera initialization on load
+        initializeWebGazer();
     };
 </script>
 
