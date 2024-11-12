@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebGazer.js Example</title>
-    <script src="library/webgazer.js" type="text/javascript"></script>
+    <script src="../library/webgazer.js" type="text/javascript"></script>
     <style>
         body {
             display: flex;
@@ -88,6 +88,91 @@
             });
     }
 
+    // Enroll new user (send name, x, and y to backend)
+    async function enrollUser(name, x, y) {
+        const payload = {
+            name: name,
+            x: x,
+            y: y
+        };
+
+        try {
+            const response = await fetch("http://localhost:8000/enroll/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log("User enrolled successfully:", data);
+            } else {
+                console.error("Error enrolling user:", response.statusText);
+            }
+        } catch (error) {
+            console.error("Network error:", error);
+        }
+    }
+
+    // Authenticate user (send x and y to backend)
+    async function authenticateUser(x, y) {
+        const payload = {
+            x: x,
+            y: y
+        };
+
+        try {
+            const response = await fetch("http://localhost:8000/authenticate/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.authenticated) {
+                    console.log("User authenticated:", data);
+                } else {
+                    console.log("Authentication failed.");
+                }
+            } else {
+                console.error("Error authenticating user:", response.statusText);
+            }
+        } catch (error) {
+            console.error("Network error:", error);
+        }
+    }
+
+    // Perform inference (send x and y list to backend)
+    async function getInference(xyList) {
+        const payload = {
+            data_points: xyList.map(([X, Y]) => ({ X, Y }))  // Format the list of points
+        };
+
+        try {
+            const response = await fetch("http://localhost:8000/inference/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log("Inference results:", data);
+            } else {
+                console.error("Error performing inference:", response.statusText);
+            }
+        } catch (error) {
+            console.error("Network error:", error);
+        }
+    }
+
     // Start eye tracking when the button is clicked
     document.getElementById('startButton').addEventListener('click', () => {
         const userName = document.getElementById('userName').value; // Get user's name
@@ -110,6 +195,9 @@
             }
         }).applyKalmanFilter(true); // Optional: Apply Kalman filter for smoothing
 
+        // Enroll the user at the start
+        enrollUser(userName, gazeData[0].x, gazeData[0].y);  // Send first data point to enroll user
+
         // Countdown function
         const countdownInterval = setInterval(() => {
             countdownValue--;
@@ -119,7 +207,8 @@
                 clearInterval(countdownInterval); // Stop the interval
                 webgazer.pause(); // Pause gaze tracking
                 console.log('Eye tracking paused.');
-                downloadCSV(gazeData); // Download collected data
+                authenticateUser(gazeData.map(d => [d.x, d.y])); // Authenticate with all gaze data
+                getInference(gazeData.map(d => [d.x, d.y])); // Perform inference with all gaze data
                 countdownContainer.style.display = 'none'; // Hide countdown display after completion
             }
         }, 1000); // Update every second
