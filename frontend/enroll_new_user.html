@@ -47,7 +47,7 @@
 </head>
 <body>
 
-<h1>Login authentication using eye gaze Page</h1>
+<h1>Eye Gaze Enroll New User</h1>
 
 <div id="controls">
     <label for="userName">Enter your name:</label>
@@ -116,36 +116,36 @@
     });
 
     function authenticateUser(gazeData) {
+        const userId= document.getElementById('userName').value;
         const payload = {
+        user_id: userId,
         data_points: gazeData.map(point => ({
-            X: point.x,  // Adjusting to match "X" and "Y" keys
+            X: point.x,  // Matching the expected "X" and "Y" keys
             Y: point.y
         }))
-        };
-        console.log("payload : ", payload);
+    };
 
-        fetch('http://localhost:8001/authenticate', {
+        console.log("Enrollment payload:", payload);
+
+        fetch('http://localhost:8001/enroll_user', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         })
         .then(response => response.json())  // Parse JSON response
         .then(data => {
-            if (data.status === "success") {
-                console.log("Success login");  // Successful login
-                // window.location.href = '/dashboard.html';  // Uncomment to redirect on success
-            } else if (data.status === "failed") {
-                console.log("Sorry user not found!!");  // Authentication failed
-                // window.location.href = '/authentication_failed.html';  // Uncomment to redirect on failure
-            } else {
-                console.log("Unexpected response:", data);  // Handle unexpected response
-            }
-        })
-        .catch(error => {
-            console.log("Error occured");
-            // console.error("Authentication failed:", error);
-            // window.location.href = '/authentication_failed.html';
-        });
+        if (data.message) {
+            console.log(data.message);  // Display success message
+            // window.location.href = '/enrollment_success.html';  // Uncomment to redirect on success
+        } else {
+            console.log("Enrollment failed");
+            // window.location.href = '/enrollment_failed.html';  // Uncomment to redirect on failure
+        }
+    })
+    .catch(error => {
+        console.error("Error occurred during enrollment:", error);
+        // window.location.href = '/enrollment_failed.html';  // Uncomment to redirect on error
+    });
     }
 
     window.onload = () => {

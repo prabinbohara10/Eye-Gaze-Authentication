@@ -3,6 +3,7 @@ import pickle
 import torch
 import numpy as np
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 from torch.nn.functional import cosine_similarity
@@ -14,8 +15,22 @@ from src.models import GazeEmbeddingModel
 embedding_file_path = "models/user_embeddings.pkl"
 gaze_embedding_model_weights_path = "models/gaze_embedding_model.pth"
 
-# FastAPI app
+### FastAPI app
 app = FastAPI()
+
+
+origins = [
+   "*"
+]
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # Allows only specified origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods (GET, POST, OPTIONS, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
 
 # Load the pre-trained model
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -89,7 +104,7 @@ def authenticate_user(data_points: List[GazeDataPoint], threshold=0.8):
 
 
 # API Endpoints
-@app.get("/all_users/")
+@app.get("/all_users")
 async def get_all_users():
     """Retrieve all enrolled users."""
     try:
@@ -100,7 +115,7 @@ async def get_all_users():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-@app.post("/enroll_user/")
+@app.post("/enroll_user")
 async def enroll_user(request: EnrollRequest):
     """Enroll a new user by storing their gaze embedding."""
     try:
@@ -111,19 +126,21 @@ async def enroll_user(request: EnrollRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/authenticate/")
+@app.post("/authenticate")
 async def authenticate(request: GazeRequest):
     """Authenticate a user based on gaze data."""
     try:
         is_authenticated, user_id = authenticate_user(request.data_points)
         if is_authenticated:
-            return {"message": f"User authenticated successfully as {user_id}."}
+            return {"message": f"User authenticated successfully as {user_id}.",
+                    "status": "success"}
         else:
-            return {"message": "Authentication failed."}
+            return {"message": "Authentication failed.",
+                    "status": "failed"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/inference/")
+@app.post("/inference")
 async def inference(request: GazeRequest):
     """Generate gaze embeddings from the provided data points."""
     try:
