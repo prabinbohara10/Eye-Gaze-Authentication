@@ -27,7 +27,8 @@
                 console.table(gazeData);
             }
         };
-
+        GazeCloudAPI.UseClickRecalibration = true;
+        
         GazeCloudAPI.OnCamDenied = function() {
             console.log('Camera access denied');
         };

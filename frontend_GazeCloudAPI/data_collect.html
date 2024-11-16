@@ -1,0 +1,222 @@
+﻿<!DOCTYPE HTML>
+
+<html>
+
+<head>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            /* Center items horizontally */
+            align-items: center;
+            /* Center items vertically */
+            height: 100vh;
+            /* Full viewport height */
+            margin: 0;
+            /* Remove default margin */
+            position: relative;
+            /* Position relative for absolute positioning of countdown */
+        }
+
+        #loadingMessage {
+            display: none;
+            /* Hidden by default */
+            font-size: 20px;
+            color: blue;
+        }
+
+        #controls {
+            display: flex;
+            flex-direction: column;
+            /* Stack input and button vertically */
+            align-items: flex-end;
+            /* Align items to the right */
+            margin-right: 20px;
+            /* Add some spacing from the edge */
+        }
+
+        #countdownContainer {
+            position: absolute;
+            /* Position absolute to center it on screen */
+            display: none;
+            /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+        }
+
+        #countdown {
+            width: 100px;
+            /* Width of the circle */
+            height: 100px;
+            /* Height of the circle */
+            border-radius: 50%;
+            /* Make it circular */
+            border: 5px solid red;
+            /* Circle border color and thickness */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: red;
+            background-color: rgba(255, 255, 255, 0.8);
+            /* Slightly transparent background */
+        }
+    </style>
+
+
+</head>
+
+
+
+
+
+<body>
+
+    <h1 style="display:none;">Eye Gaze Data Collection with WebGazer.js</h1> <!-- Hide main title -->
+
+    <div id="controls">
+        <!-- Input field for user's name -->
+        <label for="userName">Enter your name:</label>
+        <input type="text" id="userName" name="userName" placeholder="Your Name" required>
+
+        <!-- Loading message -->
+        <div id="loadingMessage">Loading webcam, please wait...</div>
+
+        <!-- Start button hidden initially -->
+        <button id="startButton" style="display: block;">Start Eye Tracking</button>
+    </div>
+
+    <!-- Countdown circle container -->
+    <div id="countdownContainer">
+        <div id="countdown">10</div> <!-- Countdown timer -->
+    </div>
+
+
+    <div>
+
+        <p id="GazeData"> </p>
+        <p id="HeadPhoseData"> </p>
+        <p id="HeadRotData"> </p>
+    </div>
+    <script type="text/javascript">
+        const gazeDataArray = [];
+
+        var ConnectionAuthorizationStatus;
+
+        //To get your AppKey register at http://gazeflow.epizy.com/GazeFlowAPI/register/
+
+        function Connect(userName, AppKey = "AppKeyDemo", port = 43333) {
+            console.log("username " + userName);
+
+            if ("WebSocket" in window) {
+
+                var url = "ws://127.0.0.1:" + port;
+
+                var ws = new WebSocket(url);
+
+                ws.onopen = function () {
+                    ws.send(AppKey); // Send appKey
+                    console.log("websocket open");
+                }
+
+
+                ws.onerror = function (error) {
+                    alert("cannot connect to GazePointer server : start GazePointer( http://gazepointer.sourceforge.net ) ");
+                }
+
+                ws.onmessage = function (evt) {
+                    //console.log("websocket message received");
+                    var received_msg = evt.data;
+                    if (typeof ConnectionAuthorizationStatus === 'undefined') {
+                        ConnectionAuthorizationStatus = received_msg;
+
+                        if (ConnectionAuthorizationStatus.substring(0, 2) !== "ok")
+
+                            alert("connection status..." + ConnectionAuthorizationStatus);
+                    } else {
+                        //console.log("websocket valid message received");
+                        var GazeData = JSON.parse(received_msg);
+                        gazeDataArray.push({
+                            GazeX : GazeData.GazeX,
+                            GazeY : GazeData.GazeY,
+                            HeadX : GazeData.HeadX,
+                            HeadY : GazeData.HeadY,
+                            Yaw : GazeData.HeadYaw,
+                            Pitch: GazeData.HeadPitch,
+                            Roll: GazeData.HeadRoll,
+                            Name: userName,
+                            Timestamp: new Date().toISOString(),
+                        })
+                        PlotGazeData(GazeData);
+                    }
+                }
+
+                ws.onclose = function () {
+                    // websocket is closed.
+                    alert("Connection is closed...");
+                };
+
+            } else {
+                // The browser doesn't support WebSocket
+                alert("WebSocket NOT supported by your Browser!");
+            }
+        }
+
+
+        function PlotGazeData(GazeData) {
+            document.getElementById("GazeData").innerHTML = "GazeX: " + GazeData.GazeX + " GazeY: " + GazeData.GazeY;
+            document.getElementById("HeadPhoseData").innerHTML = " HeadX: " + GazeData.HeadX + " HeadY: " + GazeData.HeadY + " HeadZ: " + GazeData.HeadZ;
+            document.getElementById("HeadRotData").innerHTML = " Yaw: " + GazeData.HeadYaw + " Pitch: " + GazeData.HeadPitch + " Roll: " + GazeData.HeadRoll;
+        }
+
+        function downloadCSV(data) {
+            const csvRows = [
+                ['GazeX', 'GazeY', 'HeadX', 'HeadY', 'Yaw', 'Pitch', 'Roll','Name', 'Timestamp'], // Header with Name
+                ...data.map(row => [row.GazeX, row.GazeY, row.HeadX, row.HeadY, row.Yaw, row.Pitch, row.Roll, row.Name, row.Timestamp]) // Data rows
+            ];
+
+            const csvString = csvRows.map(e => e.join(",")).join("\n");
+            const blob = new Blob([csvString], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'gaze_data.csv');
+            a.click();
+            
+            URL.revokeObjectURL(url); // Clean up the URL object
+        }
+        
+
+        // Start eye tracking when the button is clicked
+        document.getElementById('startButton').addEventListener('click', () => {
+            console.log('Eye tracking Started.');
+            const userName = document.getElementById('userName').value; // Get user's name
+            Connect(userName);
+
+            let countdownValue = 10; // Set initial countdown value
+
+            // Show countdown timer
+            const countdownDisplay = document.getElementById('countdown');
+            const countdownContainer = document.getElementById('countdownContainer');
+            countdownContainer.style.display = 'flex'; // Show the countdown container
+            countdownDisplay.textContent = countdownValue;
+
+            // Countdown function
+            const countdownInterval = setInterval(() => {
+            countdownValue--;
+            countdownDisplay.textContent = countdownValue;
+
+            if (countdownValue <= 0) {
+                clearInterval(countdownInterval); // Stop the interval
+                console.log('Eye tracking paused.');
+                downloadCSV(gazeDataArray); // Download collected data
+                countdownContainer.style.display = 'none'; // Hide countdown display after completion
+            }
+            }, 1000); // Update every second
+
+        });
+    </script>
+</body>
+
+</html>
