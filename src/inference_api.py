@@ -40,8 +40,14 @@ model.eval()  # Set model to evaluation mode
 
 # Pydantic models
 class GazeDataPoint(BaseModel):
-    X: float
-    Y: float
+    GazeX : float
+    GazeY : float
+    HeadX : float
+    HeadY : float
+    Yaw : float
+    Pitch: float
+    Roll: float
+        
 
 class GazeRequest(BaseModel):
     data_points: List[GazeDataPoint]
@@ -65,7 +71,8 @@ def save_embeddings(embeddings):
 
 # Inference function to get embeddings from gaze data points
 def get_embeddings(data_points: List[GazeDataPoint]):
-    points = np.array([[dp.X, dp.Y] for dp in data_points], dtype=np.float32)
+    points = np.array([[dp.GazeX, dp.GazeY, dp.HeadX, dp.HeadY, dp.Yaw, dp.Pitch, dp.Roll] for dp in data_points], dtype=np.float32)
+
     points_tensor = torch.tensor(points).unsqueeze(0).to(device)  # Add batch dimension
 
     # Perform inference
