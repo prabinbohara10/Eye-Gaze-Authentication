@@ -196,9 +196,9 @@
             GazeY : point.GazeY,
             HeadX : point.HeadX,
             HeadY : point.HeadY,
-            Yaw : point.HeadYaw,
-            Pitch: point.HeadPitch,
-            Roll: point.HeadRoll,
+            Yaw : point.Yaw,
+            Pitch: point.Pitch,
+            Roll: point.Roll,
         }))
         };
         
@@ -219,6 +219,10 @@
                 // window.location.href = '/authentication_failed.html';  // Uncomment to redirect on failure
             } else {
                 console.log("Unexpected response:", data);  // Handle unexpected response
+            }
+            if(data.message)
+            {
+                console.log(data.message);
             }
         })
         .catch(error => {

@@ -104,6 +104,7 @@ def authenticate_user(data_points: List[GazeDataPoint], threshold=0.8):
     
     for user_id, stored_embedding in all_embeddings.items():
         similarity = cosine_similarity(torch.tensor(embeddings).unsqueeze(0).to(device), torch.tensor(stored_embedding).unsqueeze(0).to(device)).item()
+        print("Similarity = ", similarity)
         if similarity >= threshold:
             return True, user_id
     return False, None
