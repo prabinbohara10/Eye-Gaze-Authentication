@@ -1,0 +1,270 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Gaze Tracking - Sign Up</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: #fff;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        p {
+            font-size: 18px;
+            margin-bottom: 20px;
+            text-align: center;
+            max-width: 600px;
+        }
+
+        #controls {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        label {
+            font-size: 16px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        input[type="text"] {
+            width: 80%;
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #fff;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            outline: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            transition: 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        input[type="email"] {
+            width: 80%;
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #fff;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            outline: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            transition: 0.3s ease;
+        }
+
+        input[type="email"]:focus {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        #startButton {
+            background: linear-gradient(135deg, #ff512f, #dd2476);
+            color: #fff;
+            font-size: 18px;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        #startButton:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(255, 81, 47, 0.5);
+        }
+
+        #loadingMessage {
+            font-size: 16px;
+            color: #ffd700;
+            display: none;
+        }
+
+        #countdownContainer {
+            
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            display: none;
+        }
+
+        #countdown {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #42e695, #3bb2b8);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+            color: #fff;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        footer {
+            margin-top: 20px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        footer a {
+            color: #ffd700;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="controls">
+        <h1>Welcome to Gaze Tracking</h1>
+        <p>Sign up to start tracking your gaze and accessing advanced analytics! Fill in your details below and click the Start button.</p>
+        <label for="userName">Name:</label>
+        <input type="text" id="userName" name="userName" placeholder="Your Name" required>
+
+        <label for="userEmail">Email:</label>
+        <input type="email" id="userEmail" name="userEmail" placeholder="Your Email" required>
+
+        <div id="loadingMessage">Loading webcam, please wait...</div>
+        <button id="startButton"> <span>&#128064;</span> Start Eye Tracking </button>
+    </div>
+
+    <div id="countdownContainer">
+        <div id="countdown">10</div>
+    </div>
+
+    <footer>
+        &copy; 2024 <a href="#">Gaze Tracking Application</a>. All Rights Reserved.
+    </footer>
+
+    <script>
+        const gazeDataArray = [];
+        let ConnectionAuthorizationStatus;
+
+        function Connect(userName, AppKey = "AppKeyDemo", port = 43333) {
+            console.log("Connecting user: " + userName);
+
+            if ("WebSocket" in window) {
+                const url = "ws://127.0.0.1:" + port;
+                const ws = new WebSocket(url);
+
+                ws.onopen = () => {
+                    ws.send(AppKey);
+                    console.log("WebSocket open");
+                };
+
+                ws.onerror = () => {
+                    alert("Cannot connect to GazePointer server. Please start GazePointer.");
+                };
+
+                ws.onmessage = (evt) => {
+                    if (!ConnectionAuthorizationStatus) {
+                        ConnectionAuthorizationStatus = evt.data;
+                        if (!ConnectionAuthorizationStatus.startsWith("ok")) {
+                            alert("Connection status: " + ConnectionAuthorizationStatus);
+                        }
+                    } else {
+                        const GazeData = JSON.parse(evt.data);
+                        gazeDataArray.push({
+                            GazeX: GazeData.GazeX,
+                            GazeY: GazeData.GazeY,
+                            HeadX: GazeData.HeadX,
+                            HeadY: GazeData.HeadY,
+                            Yaw: GazeData.HeadYaw,
+                            Pitch: GazeData.HeadPitch,
+                            Roll: GazeData.HeadRoll,
+                            Name: userName,
+                            Timestamp: new Date().toISOString()
+                        });
+                    }
+                };
+
+                ws.onclose = () => {
+                    alert("Connection is closed.");
+                };
+
+            } else {
+                alert("WebSocket NOT supported by your browser!");
+            }
+        }
+
+        function enrollUser(gazeData) {
+            const userId = document.getElementById('userName').value;
+            const userEmail = document.getElementById('userEmail').value;
+            const payload = {
+                user_id: userId,
+                user_email: userEmail,
+                data_points: gazeData
+            };
+
+            fetch('http://localhost:8001/enroll_user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data.message || "Enrollment failed");
+                    const message = data.message || "Enrollment failed";
+            // Redirect to enroll_success.html with the message as a query parameter
+            window.location.href = `enroll_success.html?message=${encodeURIComponent(message)}`;
+                })
+                .catch(() => console.error("Enrollment error"));
+        }
+
+        document.getElementById('startButton').addEventListener('click', () => {
+            const userName = document.getElementById('userName').value;
+            Connect(userName);
+
+            let countdownValue = 10;
+            const countdownDisplay = document.getElementById('countdown');
+            const countdownContainer = document.getElementById('countdownContainer');
+
+            countdownContainer.style.display = 'flex';
+            countdownDisplay.textContent = countdownValue;
+
+            const countdownInterval = setInterval(() => {
+                countdownValue--;
+                countdownDisplay.textContent = countdownValue;
+
+                if (countdownValue <= 0) {
+                    clearInterval(countdownInterval);
+                    enrollUser(gazeDataArray);
+                    countdownContainer.style.display = 'none';
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,254 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eye Tracking Login</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: #fff;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        p {
+            font-size: 18px;
+            margin-bottom: 20px;
+            text-align: center;
+            max-width: 600px;
+        }
+
+        #controls {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        #startButton {
+            background: linear-gradient(135deg, #ff512f, #dd2476);
+            color: #fff;
+            font-size: 18px;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        #startButton:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(255, 81, 47, 0.5);
+        }
+
+        #loadingMessage {
+            font-size: 16px;
+            color: #ffd700;
+            display: none;
+        }
+
+        #countdownContainer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            display: none;
+        }
+
+        #countdown {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #42e695, #3bb2b8);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+            color: #fff;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        footer {
+            margin-top: 20px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        footer a {
+            color: #ffd700;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="controls">
+        <h2>Login with Eye Tracking</h2>
+        <p class="instructions">Click "Start Eye Tracking" to log in using gaze data.</p>
+
+        <div id="loadingMessage">Loading webcam, please wait...</div>
+
+        <button id="startButton"> <span>&#128064;</span> Start Eye Tracking </button>
+
+        <p class="instructions">Ensure GazePointer is running on your system. If you encounter issues, visit the <a href="http://gazepointer.sourceforge.net" target="_blank">GazePointer website</a>.</p>
+    </div>
+
+    <div id="countdownContainer">
+        <div id="countdown">10</div>
+    </div>
+
+    <div>
+        <p id="GazeData"></p>
+        <p id="HeadPhoseData"></p>
+        <p id="HeadRotData"></p>
+    </div>
+
+    <script type="text/javascript">
+        const gazeDataArray = [];
+        let ConnectionAuthorizationStatus;
+
+        function Connect(AppKey = "AppKeyDemo", port = 43333) {
+            console.log("Connecting to GazePointer...");
+
+            if (!("WebSocket" in window)) {
+                alert("WebSocket NOT supported by your browser!");
+                return;
+            }
+
+            const url = `ws://127.0.0.1:${port}`;
+            const ws = new WebSocket(url);
+
+            ws.onopen = () => {
+                ws.send(AppKey);
+                console.log("WebSocket connection opened.");
+            };
+
+            ws.onerror = () => {
+                alert("Cannot connect to GazePointer server. Please ensure it is running.");
+            };
+
+            ws.onmessage = (evt) => {
+                const received_msg = evt.data;
+                if (!ConnectionAuthorizationStatus) {
+                    ConnectionAuthorizationStatus = received_msg;
+                    if (!ConnectionAuthorizationStatus.startsWith("ok")) {
+                        alert(`Connection status: ${ConnectionAuthorizationStatus}`);
+                    }
+                } else {
+                    const GazeData = JSON.parse(received_msg);
+                    gazeDataArray.push({
+                        GazeX: GazeData.GazeX,
+                        GazeY: GazeData.GazeY,
+                        HeadX: GazeData.HeadX,
+                        HeadY: GazeData.HeadY,
+                        Yaw: GazeData.HeadYaw,
+                        Pitch: GazeData.HeadPitch,
+                        Roll: GazeData.HeadRoll,
+                        Timestamp: new Date().toISOString(),
+                    });
+                    PlotGazeData(GazeData);
+                }
+            };
+
+            ws.onclose = () => {
+                alert("WebSocket connection closed.");
+            };
+        }
+
+        function PlotGazeData(GazeData) {
+            document.getElementById("GazeData").textContent = `GazeX: ${GazeData.GazeX}, GazeY: ${GazeData.GazeY}`;
+            document.getElementById("HeadPhoseData").textContent = `HeadX: ${GazeData.HeadX}, HeadY: ${GazeData.HeadY}`;
+            document.getElementById("HeadRotData").textContent = `Yaw: ${GazeData.HeadYaw}, Pitch: ${GazeData.HeadPitch}, Roll: ${GazeData.HeadRoll}`;
+        }
+
+        function authenticateUser(gazeData) {
+            const payload = {
+                data_points: gazeData.map(({ GazeX, GazeY, HeadX, HeadY, Yaw, Pitch, Roll }) => ({
+                    GazeX,
+                    GazeY,
+                    HeadX,
+                    HeadY,
+                    Yaw,
+                    Pitch,
+                    Roll,
+                })),
+            };
+
+            fetch('http://localhost:8001/authenticate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.status === "success") {
+                        const message = encodeURIComponent(data.message || "Login successful!");
+                        window.location.href = `dashboard.html?message=${message}`;
+                        console.log(data.message);
+                    } 
+                else if (data.status === "failed") {
+                    const message = encodeURIComponent(data.message || "Login failed!");
+                    window.location.href = `dashboard_failed.html?message=${message}`;
+                    console.log(data.message);
+                }
+                else {
+                    const message = encodeURIComponent(data.message || "Login failed!");
+                    window.location.href = `dashboard_failed.html?message=${message}`;
+                    console.log(data.message);
+                }
+
+                })
+                .catch(() => {
+                    alert("An error occurred during authentication.");
+                });
+        }
+
+        document.getElementById('startButton').addEventListener('click', () => {
+            Connect();
+
+            let countdownValue = 10;
+            const countdownDisplay = document.getElementById('countdown');
+            const countdownContainer = document.getElementById('countdownContainer');
+            countdownContainer.style.display = 'flex';
+            countdownDisplay.textContent = countdownValue;
+
+            const countdownInterval = setInterval(() => {
+                countdownValue--;
+                countdownDisplay.textContent = countdownValue;
+
+                if (countdownValue <= 0) {
+                    clearInterval(countdownInterval);
+                    authenticateUser(gazeDataArray);
+                    countdownContainer.style.display = 'none';
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+
+</html>

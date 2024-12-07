@@ -1,0 +1,138 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Authentication Failed</title>
+    <style>
+        /* General Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #ff5f6d, #ffc371);
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            background: #e63946;
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Layout */
+        .container {
+            display: flex;
+            height: 100%;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: #d62828;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-shadow: 4px 0 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .sidebar a {
+            text-decoration: none;
+            color: #ddd;
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-size: 18px;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .sidebar a:hover {
+            background: #f77f00;
+            color: #fff;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .message-container {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px 40px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .message {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+            color: #f1faee;
+        }
+
+        /* Warning Section */
+        .warning {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .warning p {
+            font-size: 18px;
+            color: #f8edeb;
+        }
+
+        .warning a {
+            color: #03a9f4;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        Authentication Failed
+    </header>
+
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <a href="index.html">Back to Login</a>
+            <a href="#help">Help</a>
+            <a href="#contact">Contact Support</a>
+        </nav>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <div class="message-container">
+                <p id="message" class="message"></p>
+            </div>
+
+            <!-- Warning Section -->
+            <div class="warning">
+                <p>If you believe this is a mistake, please try again or contact support.</p>
+                <p>Return to <a href="index.html">Login</a>.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Retrieve and display the message from the query parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const message = urlParams.get('message') || "Login failed. Please check your credentials and try again.";
+        document.getElementById('message').textContent = message;
+    </script>
+</body>
+</html>
